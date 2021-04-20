@@ -19,6 +19,10 @@ var bullet_normals;
 var bullet_texture_coords;
 var numVerticesInAllBulletFaces;
 
+// for fading bullets
+var size_Loc;
+var size;
+
 window.onload = function init() {
     // setup canvas
 	canvas = document.getElementById("gl-canvas");
@@ -129,6 +133,36 @@ function setupSecondShaderBuffers(){
 
     // location of vPosition in shader
 	vPosition2 = gl.getAttribLocation(program_shader2, "vPosition");
+
+	// for fading bullets
+	// event listeners
+	// doesnt work when you put these outside a function
+	var camera_checkbox = document.getElementById("c1");
+
+	camera_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			console.log("camera_checkbox checked")
+		} else {
+			console.log("camera_checkbox unchecked")
+		}
+	})
+
+	var bullet_checkbox = document.getElementById("c2");
+
+	bullet_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			size = 0.0;
+			console.log("bullet_checkbox checked")
+		} else {
+			size = 1.0; //any value other than 0 should work
+			console.log("bullet_checkbox unchecked")
+		}
+	})
+
+	// document.getElementById("slide").onchange= function() {
+	
+	// };
+	size_Loc = gl.getUniformLocation(program_shader2, "b");
 }
 
 function renderFirstObject() {
@@ -163,6 +197,7 @@ function renderSecondObject() {
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
 
+
 // variables for setting up camera view
 var modelViewMatrix, projectionMatrix;
 
@@ -181,6 +216,9 @@ function render() {
 	renderFirstObject();
 	
 	renderSecondObject();
+
+	
+	gl.uniform1f(size_Loc, size);
 
     requestAnimFrame( render );
 }
