@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+
+<script id="vertex-shader1" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 fColor;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+
+void main() {
+    // translation matrix
+    mat4 t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  0.7, 0.0, 0.0, 1.0);
+    // scaling matrix
+    mat4 sc = mat4(0.04, 0.0, 0.0, 0.0,
+                   0.0, 0.04, 0.0, 0.0,
+                   0.0, 0.0, 0.04, 0.0,
+                   0.0, 0.0, 0.0, 1.0);
+    // rotation matrix
+    mat4 rz = mat4(0.0, -1.0, 0.0, 0.0,
+		           1.0, 0.0, 0.0, 0.0,
+		           0.0, 0.0, 1.0, 0.0,
+		           0.0, 0.0, 0.0, 1.0);
+    
+    gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
+    fColor = vec4(1.0, 0.0, 0.0, 1.0);
+}
+</script>
+
+<script id="fragment-shader1" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 fColor;
+
+void main() {
+    gl_FragColor = fColor;
+}
+</script>
+
+<script id="vertex-shader2" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+varying vec4 fColor;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix; 
+
+void main() {
+    // translation matrix
+    mat4 t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  -0.2, 0.0, 0.0, 1.0);
+    // scaling matrix
+    mat4 sc = mat4(0.3, 0.0, 0.0, 0.0,
+                   0.0, 0.3, 0.0, 0.0,
+                   0.0, 0.0, 0.3, 0.0,
+                   0.0, 0.0, 0.0, 1.0);
+    // rotation matrix
+    mat4 rz = mat4(0.0, -1.0, 0.0, 0.0,
+		           1.0, 0.0, 0.0, 0.0,
+		           0.0, 0.0, 1.0, 0.0,
+		           0.0, 0.0, 0.0, 1.0);
+
+    gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
+    fColor = vec4(0.0, 1.0, 0.0, 1.0);
+}
+</script>
+    
+<script id="fragment-shader2" type="x-shader/x-fragment">    
+precision mediump float;
+
+varying vec4 fColor;
+
+void main() {
+    gl_FragColor = fColor;
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="objLoader.js"></script>
+<script type="text/javascript" src="matrix.js"></script>
+
+<body>
+
+<canvas id="gl-canvas" width="512"" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+<img id = "skin" src = "skin.jpg" hidden></img>
+<br/>
+
+</body>
+</html>
