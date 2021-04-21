@@ -13,19 +13,14 @@ void main() {
     mat4 t = mat4(1.0, 0.0, 0.0, 0.0,
                   0.0, 1.0, 0.0, 0.0,
                   0.0, 0.0, 1.0, 0.0,
-                  0.7, 0.0, 0.0, 1.0);
+                  0.75, 0.0, 0.0, 1.0);
     // scaling matrix
     mat4 sc = mat4(0.04, 0.0, 0.0, 0.0,
                    0.0, 0.04, 0.0, 0.0,
                    0.0, 0.0, 0.04, 0.0,
                    0.0, 0.0, 0.0, 1.0);
-    // rotation matrix
-    mat4 rz = mat4(0.0, -1.0, 0.0, 0.0,
-		           1.0, 0.0, 0.0, 0.0,
-		           0.0, 0.0, 1.0, 0.0,
-		           0.0, 0.0, 0.0, 1.0);
     
-    gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
+    gl_Position = (t * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
     fColor = vec4(1.0, 0.0, 0.0, 1.0);
 }
 </script>
@@ -48,6 +43,9 @@ uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix; 
 
 uniform float b;
+uniform float move;
+uniform float tx;
+uniform float r;
 
 void main() {
     // translation matrix
@@ -71,6 +69,17 @@ void main() {
             0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0);
+    }
+    
+    if (move == 1.0 || move == -1.0) {
+        t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  tx, 0.0, 0.0, 1.0);
+        rz = mat4(0.0, -1.0, 0.0, 0.0,
+                  r, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  0.0, 0.0, 0.0, 1.0);
     }
 
     gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
@@ -109,6 +118,11 @@ void main() {
 <div>
     <input type="checkbox" name="fade_bullets" id="c2"/>
     <label for="fade_bullets">Toggle bullets</label>
+</div>
+
+<div>
+    <input type="checkbox" name="move_bullets" id="c3" />
+    <label for="move_bullets">Move bullets</label>
 </div>
 
 

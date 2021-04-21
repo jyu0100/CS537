@@ -19,9 +19,17 @@ var bullet_normals;
 var bullet_texture_coords;
 var numVerticesInAllBulletFaces;
 
-// for fading bullets
+// fading bullets
 var size_Loc;
 var size;
+
+// moving bullets
+var move;
+var move_Loc;
+var tx = -1.0;
+var tx_Loc;
+var r = 1.0;
+var r_Loc;
 
 window.onload = function init() {
     // setup canvas
@@ -29,9 +37,9 @@ window.onload = function init() {
     gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
     gl.viewport( 0, 0, canvas.width, canvas.height );
-    gl.clearColor( 0.0, 1.0, 1.0, 0.2 ); // CHANGE TO WHITE LATER
+	gl.clearColor( 0.0, 1.0, 1.0, 0.2 ); // CHANGE TO WHITE LATER
 	
-	//ellipse();
+	revolve();
 
 	// load hand obj file using objLoader.js, and then call func to load bullet;
 	loadOBJFromPath("Hand.obj", loadedHand, readBullet);
@@ -159,10 +167,27 @@ function setupSecondShaderBuffers(){
 		}
 	})
 
+	// event listener for moving bullet
+	var move_checkbox = document.getElementById("c3");
+	move_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			move = 1.0;
+			console.log("move_checkbox checked")
+		} else {
+			move = 0.0;
+			console.log("move_checkbox unchecked")
+		}
+	})
+
 	// document.getElementById("slide").onchange= function() {
 	
 	// };
+	
+	// get locations in shader
 	size_Loc = gl.getUniformLocation(program_shader2, "b");
+	move_Loc = gl.getUniformLocation(program_shader2, "move");
+	tx_Loc = gl.getUniformLocation(program_shader2, "tx");
+	r_Loc = gl.getUniformLocation(program_shader2, "r");
 }
 
 function renderFirstObject() {
@@ -191,25 +216,74 @@ function renderSecondObject() {
     gl.enableVertexAttribArray(vPosition2);
 	
 	// send modelView and projection matrices to shader
-	gl.uniformMatrix4fv(modelViewMatrixLoc2, false, flatten(modelViewMatrix));
+	gl.uniformMatrix4fv(modelViewMatrixLoc2, false, flatten(modelViewMatrix2));
     gl.uniformMatrix4fv(projectionMatrixLoc2, false, flatten(projectionMatrix));
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
 
+var circlePoints = [];
+var circleNormal;
+
+// revolve camera around hand
+function revolve() {
+	// circular path: C + a cos(theta) U + b sin(theta) V, where a=b
+	
+	// major axis scale
+	var a = 1.0;
+	// minor axis scale
+	var b = 1.0;
+	// center point of sphere
+	var C = vec3(0.0, 0.0, 0.0);
+	// major axis vector U
+	var U = (vec3(0.0, -1.0, 0.0));
+	// minor axis vector V
+	var V = (vec3(1.0, 0.0, 0.0));
+	// normal is cross of U and V
+	circleNormal = (cross(U, V));
+	
+	// iterate through theta for sphere points [0,2π]
+	for (var i=0; i<360; i++) {
+		var theta = radians(i);
+		
+		var acos = a*Math.cos(theta);
+		var bsin = b*Math.sin(theta);
+		
+		var U_calc = vec3(acos*U[0], acos*U[1], acos*U[2]);
+		var V_calc = vec3(bsin*V[0], bsin*V[1], bsin*V[2]);
+		
+		var UV = add(U_calc, V_calc);
+		var point = add(C, UV);
+
+		circlePoints.push(point);
+	}
+}
 
 // variables for setting up camera view
 var modelViewMatrix, projectionMatrix;
+var modelViewMatrix2;
+var idx = 0;
 
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
-	//Setup ModelView and Projection Matrices.
-	var eye = vec3(1.0, 0.0, 0.0);
-	var at = vec3(0.0, 0.0, 0.0);
-	var up = vec3(0.0, 1.0, 0.0);
+	// camera for hand
+	var cameraScale = 1;
+	var eye1 = vec3(cameraScale*circlePoints[idx%360][0],
+					cameraScale*circlePoints[idx%360][1],
+					cameraScale*circlePoints[idx%360][2]);
+	var at1 = vec3(0.0, 0.0, 0.0);
+	var up1 = circleNormal;
 
-	modelViewMatrix = lookAt(eye, at, up);
+	// camera for bullet
+	var eye2 = vec3(0.0, 0.0, 0.0);
+	var at2 = vec3(0.0, 0.0, 0.0);
+	var up2 = vec3(0.0, 0.0, 0.0);
+
+	modelViewMatrix = lookAt(eye1, at1, up1);
+	modelViewMatrix2 = lookAt(eye2, at2, up2);
+	idx++;
+
 	var scale = 6;
 	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
 	
@@ -217,8 +291,34 @@ function render() {
 	
 	renderSecondObject();
 
-	
-	gl.uniform1f(size_Loc, size);
+	// positive bullet direction
+	if (move == 1.0) {
+		// facing towards hand
+		r = 1.0;
+		// forward movement
+		tx += 0.02;
+		if (tx >= 0.3) {
+			// move backwards now
+			move = -1.0;
+		}
+	}
+	// negative bullet direction
+	if (move == -1.0) {
+		// facing away from hand
+		r = -1.0;
+		// backwards movement
+		tx -= 0.02;
+		if (tx <= -1.3) {
+			// move forwards now
+			move = 1.0;
+		}
+	}
 
-    requestAnimFrame( render );
+	// send values to shader
+	gl.uniform1f(size_Loc, size);
+	gl.uniform1f(move_Loc, move);
+	gl.uniform1f(tx_Loc, tx);
+	gl.uniform1f(r_Loc, r);
+
+    requestAnimFrame(render);
 }
