@@ -31,6 +31,18 @@ var tx_Loc;
 var r = 1.0;
 var r_Loc;
 
+// stop camera + slider
+var stop_cam = false;
+var enable_slide = false;
+var path_index = 0;
+
+// move hand
+var tx_h;
+var ty_h;
+
+var txh_Loc;
+var tyh_Loc;
+
 window.onload = function init() {
     // setup canvas
 	canvas = document.getElementById("gl-canvas");
@@ -118,6 +130,15 @@ function setupFirstShaderBuffers(){
 
     // location of vPosition in shader
 	vPosition1 = gl.getAttribLocation(program_shader1, "vPosition");
+
+	canvas.addEventListener("mousedown", function(event){
+        tx_h = 2*event.clientX/canvas.width-1;
+        ty_h = 2*(canvas.height-event.clientY)/canvas.height-1;
+    } );
+
+	txh_Loc = gl.getUniformLocation(program_shader1, "tx");
+    tyh_Loc = gl.getUniformLocation(program_shader1, "ty");
+
 }
 
 function setupSecondShaderBuffers(){
@@ -149,8 +170,11 @@ function setupSecondShaderBuffers(){
 
 	camera_checkbox.addEventListener('change', function() {
 		if (this.checked) {
+			stop_cam = true;
 			console.log("camera_checkbox checked")
 		} else {
+			stop_cam = false;
+			enable_slide = false;
 			console.log("camera_checkbox unchecked")
 		}
 	})
@@ -179,9 +203,19 @@ function setupSecondShaderBuffers(){
 		}
 	})
 
-	// document.getElementById("slide").onchange= function() {
-	
-	// };
+	document.getElementById("slide").onchange= function() {
+		if (stop_cam) {
+			if (event.target.value == 0 || event.target.value == 360) {
+				enable_slide = true;
+				path_index = 0;
+			} else {
+				enable_slide = true;
+				path_index = parseInt(event.target.value);
+			}
+		}
+		//console.log(path_index)
+		//console.log(enable_slide) 
+	};
 	
 	// get locations in shader
 	size_Loc = gl.getUniformLocation(program_shader2, "b");
@@ -204,6 +238,10 @@ function renderFirstObject() {
     gl.uniformMatrix4fv(projectionMatrixLoc1, false, flatten(projectionMatrix));
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllHandFaces, gl.UNSIGNED_SHORT, 0);
+
+	// had to drop these in here instead of render function to work
+	gl.uniform1f(txh_Loc, tx_h);
+    gl.uniform1f(tyh_Loc, ty_h);
 }
 
 function renderSecondObject() {
@@ -257,6 +295,7 @@ function revolve() {
 
 		circlePoints.push(point);
 	}
+	//console.log(circlePoints);
 }
 
 // variables for setting up camera view
@@ -269,9 +308,17 @@ function render() {
 	
 	// camera for hand
 	var cameraScale = 1;
-	var eye1 = vec3(cameraScale*circlePoints[idx%360][0],
-					cameraScale*circlePoints[idx%360][1],
-					cameraScale*circlePoints[idx%360][2]);
+	var eye1;
+	if (!enable_slide) {
+		eye1 = vec3(cameraScale*circlePoints[idx%360][0],
+			cameraScale*circlePoints[idx%360][1],
+			cameraScale*circlePoints[idx%360][2]);
+	}
+	if (enable_slide) {
+		eye1 = vec3(cameraScale*circlePoints[path_index][0],
+			cameraScale*circlePoints[path_index][1],
+			cameraScale*circlePoints[path_index][2]);
+	}
 	var at1 = vec3(0.0, 0.0, 0.0);
 	var up1 = circleNormal;
 
@@ -282,7 +329,11 @@ function render() {
 
 	modelViewMatrix = lookAt(eye1, at1, up1);
 	modelViewMatrix2 = lookAt(eye2, at2, up2);
-	idx++;
+
+	if (!stop_cam & !enable_slide) {
+		idx++;
+	}
+
 
 	var scale = 6;
 	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
@@ -319,6 +370,7 @@ function render() {
 	gl.uniform1f(move_Loc, move);
 	gl.uniform1f(tx_Loc, tx);
 	gl.uniform1f(r_Loc, r);
+	
 
     requestAnimFrame(render);
 }
