@@ -50,6 +50,7 @@ window.onload = function init() {
     if (!gl) { alert("WebGL isn't available"); }
     gl.viewport( 0, 0, canvas.width, canvas.height );
 	gl.clearColor( 0.0, 1.0, 1.0, 0.2 ); // CHANGE TO WHITE LATER
+
 	
 	revolve();
 
@@ -303,6 +304,8 @@ var modelViewMatrix, projectionMatrix;
 var modelViewMatrix2;
 var idx = 0;
 
+var stop_popup = false;
+
 function render() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	
@@ -370,6 +373,12 @@ function render() {
 	gl.uniform1f(move_Loc, move);
 	gl.uniform1f(tx_Loc, tx);
 	gl.uniform1f(r_Loc, r);
+
+
+	if (tx >= tx_h & !stop_popup) {
+		alert("You got hit")
+		stop_popup = true;
+	}
 	
 
     requestAnimFrame(render);
