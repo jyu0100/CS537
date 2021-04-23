@@ -3,7 +3,10 @@
 
 <script id="vertex-shader1" type="x-shader/x-vertex">
 attribute vec4 vPosition;
-varying vec4 fColor;
+//attribute vec3 vNormal;
+
+attribute vec2 vTexCoord;
+varying vec2 fTexCoord;
 
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
@@ -28,19 +31,19 @@ void main() {
         0.0, 0.0, 1.0, 0.0,
         tx, ty, 0.0, 1.0);
     }
-    
     gl_Position = (t * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
-    fColor = vec4(1.0, 0.0, 0.0, 1.0);
+    fTexCoord = vTexCoord;
 }
 </script>
 
 <script id="fragment-shader1" type="x-shader/x-fragment">
 precision mediump float;
 
-varying vec4 fColor;
+varying vec2 fTexCoord;
+uniform sampler2D texture;
 
 void main() {
-    gl_FragColor = fColor;
+    gl_FragColor = texture2D(texture, fTexCoord);
 }
 </script>
 
@@ -138,7 +141,7 @@ void main() {
 <canvas id="gl-canvas" width="512" height="512">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>
-<img id = "skin" src = "skin.jpg" hidden></img>
+<img id = "hand_tex" src = "glove.png" hidden></img>
 <br/>
 
 

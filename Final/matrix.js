@@ -39,7 +39,6 @@ var path_index = 0;
 // move hand
 var tx_h;
 var ty_h;
-
 var txh_Loc;
 var tyh_Loc;
 
@@ -49,9 +48,9 @@ window.onload = function init() {
     gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
     gl.viewport( 0, 0, canvas.width, canvas.height );
-	gl.clearColor( 0.0, 1.0, 1.0, 0.2 ); // CHANGE TO WHITE LATER
+	gl.clearColor( 0.0, 1.0, 1.0, 0.2 ); // CHANGE LATER?
 
-	
+	// camera revolution around hand
 	revolve();
 
 	// load hand obj file using objLoader.js, and then call func to load bullet;
@@ -70,9 +69,8 @@ function loadedHand(data, _callback) {
 	hand_indices = hand_object.i_verts;
 	hand_vertices = hand_object.c_verts;
 	numVerticesInAllHandFaces = hand_indices.length;
-	hand_normals = hand_object.c_norms;
-	hand_texture_coords = hand_object.c_uvt;
-	// need normal/texture indices here?
+	hand_normals = orderCoords(hand_object, "normal");
+	hand_texture_coords = orderCoords(hand_object, "texture");
 	_callback();
 }
 
@@ -83,11 +81,71 @@ function loadedBullet(data, _callback) {
 	bullet_indices = bullet_object.i_verts;
 	bullet_vertices = bullet_object.c_verts;
 	numVerticesInAllBulletFaces = bullet_indices.length;
-	bullet_normals = bullet_object.c_norms;
-	bullet_texture_coords = bullet_object.c_uvt;
+	bullet_normals = orderCoords(bullet_object, "normal");
+	bullet_texture_coords = orderCoords(hand_object, "texture");
 	// need normal/texture indices here?
 	_callback();
 }
+
+// order coordinates of texture/normal to match ordering of vertices
+function orderCoords(obj_object, flag){
+	if (flag == "texture") {
+		var texCoordsOrderedWithVertices = [];
+
+		// separate tex coords into (u,v)
+		var u_verts = [];
+		var v_verts = [];
+		for (var i=0; i<obj_object.c_uvt.length; i+=2) {
+			u_verts.push(obj_object.c_uvt[i]);
+			v_verts.push(obj_object.c_uvt[i+1]);
+		}
+
+		// match orderings of c_verts from i_verts
+		for (var i=0; i<obj_object.i_verts.length; i++) {
+			// i_verts[i] = a 	so GPU gets c_verts[a]
+			// i_uvt[i] = 	b 	so orderTex[a] = c_uvt[b]
+			// i_norms[i] = c 	so orderNorm[a] = c_norm[c]
+			var a = obj_object.i_verts[i];
+			var b = obj_object.i_uvt[i];
+			texCoordsOrderedWithVertices[a] = vec2(u_verts[b], v_verts[b]);
+		}
+		
+		// flatten array of arrays to single array
+		texCoordsOrderedWithVertices = [].concat.apply([], texCoordsOrderedWithVertices);
+		
+		return texCoordsOrderedWithVertices;
+	}
+	else if (flag == "normal") {
+		var normalsOrderedWithVertices = [];
+
+		// separate norm coords into (x,y,z)
+		var x_verts = [];
+		var y_verts = [];
+		var z_verts = [];
+		for (var i=0; i<obj_object.c_norms.length; i+=3) {
+			x_verts.push(obj_object.c_norms[i]);
+			y_verts.push(obj_object.c_norms[i+1]);
+			z_verts.push(obj_object.c_norms[i+2]);
+		}
+
+		// match ordering of c_verts from i_verts
+		for (var i=0; i<obj_object.i_verts.length; i++) {
+			// i_verts[i] = a 	so GPU gets c_verts[a] <- (x,y,z)
+			// i_uvt[i] = 	b 	so orderTex[a] = c_uvt[b]
+			// i_norms[i] = c 	so orderNorm[a] = c_norm[c]
+			var a = obj_object.i_verts[i];
+			var c = obj_object.i_norms[i];
+			normalsOrderedWithVertices[a] = vec3(x_verts[c], y_verts[c], z_verts[c]);
+		}
+		
+		// flatten array of arrays to single array
+		normalsOrderedWithVertices = [].concat.apply([], normalsOrderedWithVertices);
+
+		return normalsOrderedWithVertices;
+	}
+}
+
+var texture1;
 
 function setupAfterDataLoad() {
 	gl.enable(gl.DEPTH_TEST);
@@ -96,10 +154,22 @@ function setupAfterDataLoad() {
 	
 	setupSecondShaderBuffers();
 	
-	// var image = document.getElementById("texImage");
-	// texture1 = configureTexture( image );
+	var image = document.getElementById("hand_tex");
+	texture1 = configureTexture(image);
 	
     render();	
+}
+
+function configureTexture(image) {
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
+	// cannot use mipmap on texture image (not power of 2) so use wrapping
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+	return texture;
 }
 
 // variables for shader passing and acquiring location
@@ -124,6 +194,26 @@ function setupFirstShaderBuffers(){
     vBuffer1 = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer1);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(hand_vertices), gl.STATIC_DRAW);
+
+	// pass vertex normals to GPU
+	// var nBuffer = gl.createBuffer();
+    // gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+    // gl.bufferData(gl.ARRAY_BUFFER, flatten(hand_normals), gl.STATIC_DRAW);
+
+	// pass vertex normals to shader 
+	// var vNormal = gl.getAttribLocation(program_shader1, "vNormal");
+    // gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(vNormal);
+
+	// pass texture coords to GPU
+	var tBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, tBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(hand_texture_coords), gl.STATIC_DRAW);
+    
+	// pass texture coords to shader
+	var vTexCoord = gl.getAttribLocation(program_shader1, "vTexCoord");
+    gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vTexCoord);
 	 
 	// location of modelView and projection matrices in shader
 	modelViewMatrixLoc1 = gl.getUniformLocation(program_shader1, "modelViewMatrix");
@@ -139,7 +229,6 @@ function setupFirstShaderBuffers(){
 
 	txh_Loc = gl.getUniformLocation(program_shader1, "tx");
     tyh_Loc = gl.getUniformLocation(program_shader1, "ty");
-
 }
 
 function setupSecondShaderBuffers(){
@@ -238,6 +327,11 @@ function renderFirstObject() {
 	gl.uniformMatrix4fv(modelViewMatrixLoc1, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc1, false, flatten(projectionMatrix));
 
+	// set tech texture as current texture to apply to hand
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture1);
+	gl.uniform1i(gl.getUniformLocation(program_shader1, "texture"), 0);
+
     gl.drawElements(gl.TRIANGLES, numVerticesInAllHandFaces, gl.UNSIGNED_SHORT, 0);
 
 	// had to drop these in here instead of render function to work
@@ -303,7 +397,6 @@ function revolve() {
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrix2;
 var idx = 0;
-
 var stop_popup = false;
 
 function render() {
@@ -336,7 +429,6 @@ function render() {
 	if (!stop_cam & !enable_slide) {
 		idx++;
 	}
-
 
 	var scale = 6;
 	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
@@ -374,12 +466,10 @@ function render() {
 	gl.uniform1f(tx_Loc, tx);
 	gl.uniform1f(r_Loc, r);
 
-
 	if (tx >= tx_h & !stop_popup) {
 		alert("You got hit")
 		stop_popup = true;
 	}
 	
-
     requestAnimFrame(render);
 }
