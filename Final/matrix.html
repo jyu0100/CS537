@@ -51,6 +51,10 @@ void main() {
 attribute vec4 vPosition;
 varying vec4 fColor;
 
+attribute vec2 vTexCoord;
+varying vec2 fTexCoord;
+varying vec3 R;
+
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix; 
 
@@ -96,6 +100,14 @@ void main() {
 
     gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
     fColor = vec4(0.0, 1.0, 0.0, 1.0);
+    fTexCoord = vTexCoord;
+
+
+    //vec3 eyePos  = (modelViewMatrix*vPosition).xyz;
+
+    //vec3 N = normalize(normalMatrix*vNormal.xyz);
+    
+    //R = reflect(eyePos, N);
 }
 </script>
     
@@ -103,9 +115,12 @@ void main() {
 precision mediump float;
 
 varying vec4 fColor;
+varying vec2 fTexCoord;
+uniform sampler2D texture;
+varying vec3 R;
 
 void main() {
-    gl_FragColor = fColor;
+    gl_FragColor = texture2D(texture, fTexCoord);
 }
 </script>
 

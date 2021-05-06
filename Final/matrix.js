@@ -146,6 +146,7 @@ function orderCoords(obj_object, flag){
 }
 
 var texture1;
+var texture2;
 
 function setupAfterDataLoad() {
 	gl.enable(gl.DEPTH_TEST);
@@ -156,6 +157,7 @@ function setupAfterDataLoad() {
 	
 	var image = document.getElementById("hand_tex");
 	texture1 = configureTexture(image);
+	texture2 = configureTexture(image);
 	
     render();	
 }
@@ -348,9 +350,12 @@ function renderSecondObject() {
     gl.vertexAttribPointer(vPosition2, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition2);
 	
-	// send modelView and projection matrices to shader
 	gl.uniformMatrix4fv(modelViewMatrixLoc2, false, flatten(modelViewMatrix2));
     gl.uniformMatrix4fv(projectionMatrixLoc2, false, flatten(projectionMatrix));
+
+	gl.activeTexture(gl.TEXTURE0);
+	gl.bindTexture(gl.TEXTURE_2D, texture2);
+	gl.uniform1i(gl.getUniformLocation(program_shader2, "texture"), 0);
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
