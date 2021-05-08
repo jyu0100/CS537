@@ -19,6 +19,19 @@ var bullet_normals;
 var bullet_texture_coords;
 var numVerticesInAllBulletFaces;
 
+// standard lighting for hand
+var lightPosition = vec4(-5.0, 0.0, -5.0, 0.0);
+var lightAmbient = vec4(0.7, 0.7, 0.7, 1.0);
+var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
+var materialAmbient = vec4(0.7, 0.7, 0.7, 1.0);
+var materialDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
+var materialSpecular = vec4(1.0, 1.0, 1.0, 1.0);
+var materialShininess = 50.0;
+var ambientProduct = mult(lightAmbient, materialAmbient);
+var diffuseProduct = mult(lightDiffuse, materialDiffuse);
+var specularProduct = mult(lightSpecular, materialSpecular);
+
 // fading bullets
 var size_Loc;
 var size;
@@ -57,6 +70,17 @@ window.onload = function init() {
 	loadOBJFromPath("Hand.obj", loadedHand, readBullet);
 }
 
+window.onresize = function() {
+	var min = innerWidth;
+
+	if (innerHeight < min) {
+		min = innerHeight;
+	}
+	if (min < canvas.width || min < canvas.height) {
+		gl.viewport(0, canvas.height-min, min, min)
+	}
+}
+
 function readBullet() {
 	// load bullet obj using objLoader.js, and then call func to setup data
 	loadOBJFromPath("Bullet.obj", loadedBullet, setupAfterDataLoad);
@@ -83,7 +107,6 @@ function loadedBullet(data, _callback) {
 	numVerticesInAllBulletFaces = bullet_indices.length;
 	bullet_normals = orderCoords(bullet_object, "normal");
 	bullet_texture_coords = orderCoords(hand_object, "texture");
-	// need normal/texture indices here?
 	_callback();
 }
 
@@ -181,6 +204,7 @@ var vPosition1, vPosition2;
 var iBuffer1, iBuffer2;
 var projectionMatrixLoc1, modelViewMatrixLoc1;
 var projectionMatrixLoc2, modelViewMatrixLoc2;
+var normalMatrix, normalMatrixLoc;
 
 function setupFirstShaderBuffers(){
 	// load vertex and fragment shaders
@@ -198,14 +222,14 @@ function setupFirstShaderBuffers(){
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(hand_vertices), gl.STATIC_DRAW);
 
 	// pass vertex normals to GPU
-	// var nBuffer = gl.createBuffer();
-    // gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
-    // gl.bufferData(gl.ARRAY_BUFFER, flatten(hand_normals), gl.STATIC_DRAW);
+	var nBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(hand_normals), gl.STATIC_DRAW);
 
 	// pass vertex normals to shader 
-	// var vNormal = gl.getAttribLocation(program_shader1, "vNormal");
-    // gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
-    // gl.enableVertexAttribArray(vNormal);
+	var vNormal = gl.getAttribLocation(program_shader1, "vNormal");
+    gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vNormal);
 
 	// pass texture coords to GPU
 	var tBuffer = gl.createBuffer();
@@ -217,9 +241,10 @@ function setupFirstShaderBuffers(){
     gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vTexCoord);
 	 
-	// location of modelView and projection matrices in shader
+	// location of modelView, projection, and normal matrices in shader
 	modelViewMatrixLoc1 = gl.getUniformLocation(program_shader1, "modelViewMatrix");
     projectionMatrixLoc1 = gl.getUniformLocation(program_shader1, "projectionMatrix");
+	normalMatrixLoc = gl.getUniformLocation(program_shader1, "normalMatrix");
 
     // location of vPosition in shader
 	vPosition1 = gl.getAttribLocation(program_shader1, "vPosition");
@@ -325,16 +350,24 @@ function renderFirstObject() {
     gl.vertexAttribPointer(vPosition1, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition1);
 	
-	// send modelView and projection matrices to shader
+	// send modelView, projection, and normal matrices to shader
 	gl.uniformMatrix4fv(modelViewMatrixLoc1, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc1, false, flatten(projectionMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc, false, flatten(normalMatrix));
 
 	// set tech texture as current texture to apply to hand
 	gl.activeTexture(gl.TEXTURE0);
 	gl.bindTexture(gl.TEXTURE_2D, texture1);
 	gl.uniform1i(gl.getUniformLocation(program_shader1, "texture"), 0);
 
-    gl.drawElements(gl.TRIANGLES, numVerticesInAllHandFaces, gl.UNSIGNED_SHORT, 0);
+    // send light components to shader
+	gl.uniform4fv(gl.getUniformLocation(program_shader1, "lightPosition"), flatten(lightPosition));
+	gl.uniform4fv(gl.getUniformLocation(program_shader1, "ambientProduct"), flatten(ambientProduct));
+	gl.uniform4fv(gl.getUniformLocation(program_shader1, "diffuseProduct"), flatten(diffuseProduct));
+	gl.uniform4fv(gl.getUniformLocation(program_shader1, "specularProduct"), flatten(specularProduct));	
+	gl.uniform1f(gl.getUniformLocation(program_shader1, "shininess"), materialShininess);
+	
+	gl.drawElements(gl.TRIANGLES, numVerticesInAllHandFaces, gl.UNSIGNED_SHORT, 0);
 
 	// had to drop these in here instead of render function to work
 	gl.uniform1f(txh_Loc, tx_h);
@@ -395,7 +428,6 @@ function revolve() {
 
 		circlePoints.push(point);
 	}
-	//console.log(circlePoints);
 }
 
 // variables for setting up camera view
@@ -431,12 +463,19 @@ function render() {
 	modelViewMatrix = lookAt(eye1, at1, up1);
 	modelViewMatrix2 = lookAt(eye2, at2, up2);
 
+	var scale = 6;
+	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
+
+	// normal matrix for lighting
+	normalMatrix = [
+        vec3(modelViewMatrix[0][0], modelViewMatrix[0][1], modelViewMatrix[0][2]),
+        vec3(modelViewMatrix[1][0], modelViewMatrix[1][1], modelViewMatrix[1][2]),
+        vec3(modelViewMatrix[2][0], modelViewMatrix[2][1], modelViewMatrix[2][2])
+    ];
+
 	if (!stop_cam & !enable_slide) {
 		idx++;
 	}
-
-	var scale = 6;
-	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
 	
 	renderFirstObject();
 	

@@ -3,13 +3,17 @@
 
 <script id="vertex-shader1" type="x-shader/x-vertex">
 attribute vec4 vPosition;
-//attribute vec3 vNormal;
+attribute vec3 vNormal;
 
 attribute vec2 vTexCoord;
 varying vec2 fTexCoord;
 
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix;
+
+uniform vec4 lightPosition;
+uniform mat3 normalMatrix;
+varying vec3 N, L, E;
 
 uniform float tx;
 uniform float ty;
@@ -31,6 +35,19 @@ void main() {
         0.0, 0.0, 1.0, 0.0,
         tx, ty, 0.0, 1.0);
     }
+
+    // vertex position in eye coordinates
+    vec3 pos = (modelViewMatrix * vPosition).xyz;
+    
+    // check for directional light
+    if(lightPosition.w == 0.0) L = normalize(lightPosition.xyz);
+    else L = normalize(lightPosition.xyz - pos);
+    
+    // eye pointed at orgin
+    E = -normalize(pos);
+    // vertex normal into eye coordinatess
+    N = normalize(normalMatrix*vNormal.xyz);
+
     gl_Position = (t * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
     fTexCoord = vTexCoord;
 }
@@ -42,8 +59,29 @@ precision mediump float;
 varying vec2 fTexCoord;
 uniform sampler2D texture;
 
+uniform vec4 ambientProduct;
+uniform vec4 diffuseProduct;
+uniform vec4 specularProduct;
+uniform float shininess;
+varying vec3 N, L, E;
+
 void main() {
-    gl_FragColor = texture2D(texture, fTexCoord);
+    // halfway vector
+    vec3 H = normalize(L + E);
+    
+    // illumination equation
+    vec4 ambient = ambientProduct;
+
+    float Kd = max(dot(L, N), 0.0);
+    vec4 diffuse = Kd * diffuseProduct;
+
+    float Ks = pow(max(dot(N, H), 0.0), shininess);
+    vec4 specular = Ks * specularProduct;
+
+    vec4 fColor = ambient + diffuse + specular;
+    fColor.a = 1.0;
+    
+    gl_FragColor = fColor*texture2D(texture, fTexCoord);
 }
 </script>
 
