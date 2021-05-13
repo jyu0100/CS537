@@ -87,6 +87,10 @@ void main() {
 
 <script id="vertex-shader2" type="x-shader/x-vertex">
 attribute vec4 vPosition;
+attribute vec4 vPositionC;
+attribute vec3 vNormal;
+attribute vec3 vNormalC;
+
 varying vec4 fColor;
 
 attribute vec2 vTexCoord;
@@ -95,6 +99,8 @@ varying vec3 R;
 
 uniform mat4 modelViewMatrix;
 uniform mat4 projectionMatrix; 
+
+uniform mat3 normalMatrix;
 
 uniform float b;
 uniform float move;
@@ -141,24 +147,27 @@ void main() {
     fTexCoord = vTexCoord;
 
 
-    //vec3 eyePos  = (modelViewMatrix*vPosition).xyz;
+    vec3 eyePos  = (modelViewMatrix*vPositionC).xyz;
 
-    //vec3 N = normalize(normalMatrix*vNormal.xyz);
+    vec3 N = normalize(normalMatrix*vNormalC.xyz);
     
-    //R = reflect(eyePos, N);
+    R = reflect(eyePos, N);
 }
 </script>
     
 <script id="fragment-shader2" type="x-shader/x-fragment">    
 precision mediump float;
 
-varying vec4 fColor;
-varying vec2 fTexCoord;
-uniform sampler2D texture;
+//varying vec4 fColor;
+//varying vec2 fTexCoord;
+//uniform sampler2D texture;
+
 varying vec3 R;
+uniform samplerCube texMap;
 
 void main() {
-    gl_FragColor = texture2D(texture, fTexCoord);
+    vec4 texColor = textureCube(texMap, R);
+    gl_FragColor = texColor;
 }
 </script>
 

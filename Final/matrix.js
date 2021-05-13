@@ -55,6 +55,64 @@ var ty_h;
 var txh_Loc;
 var tyh_Loc;
 
+// TODO: reflective mapping
+var cubeMap;
+var white = new Uint8Array([255, 255, 255, 255]);
+var silver = new Uint8Array([187, 194, 204, 255]);
+var red = new Uint8Array([255, 0, 0, 255]);
+var green = new Uint8Array([0, 255, 0, 255]);
+var blue = new Uint8Array([31, 81, 255, 255]);
+var cyan = new Uint8Array([0, 255, 255, 255]);
+var magenta = new Uint8Array([255, 0, 255, 255]);
+var yellow = new Uint8Array([255, 255, 0, 255]);
+// var pointsArray = [];
+// var normalsArray = [];
+// var vertices = [
+//     vec4( -0.5, -0.5,  0.5, 1.0 ),
+//     vec4( -0.5,  0.5,  0.5, 1.0 ),
+//     vec4( 0.5,  0.5,  0.5, 1.0 ),
+//     vec4( 0.5, -0.5,  0.5, 1.0 ),
+//     vec4( -0.5, -0.5, -0.5, 1.0 ),
+//     vec4( -0.5,  0.5, -0.5, 1.0 ),
+//     vec4( 0.5,  0.5, -0.5, 1.0 ),
+//     vec4( 0.5, -0.5, -0.5, 1.0 )
+// ];
+// function quad(a, b, c, d) {
+
+// 	var t1 = subtract(vertices[b], vertices[a]);
+// 	var t2 = subtract(vertices[c], vertices[a]);
+// 	var normal = cross(t1, t2);
+// 	normal[3] = 0.0;
+
+// 	pointsArray.push(vertices[a]); 
+// 	normalsArray.push(normal); 
+
+// 	pointsArray.push(vertices[b]); 
+// 	normalsArray.push(normal);  
+
+// 	pointsArray.push(vertices[c]); 
+// 	normalsArray.push(normal);;  
+   
+// 	pointsArray.push(vertices[a]); 
+// 	normalsArray.push(normal);;  
+
+// 	pointsArray.push(vertices[c]); 
+// 	normalsArray.push(normal);;  
+
+// 	pointsArray.push(vertices[d]); 
+// 	normalsArray.push(normal);;     
+// }
+// function colorCube()
+// {
+//     quad( 1, 0, 3, 2 );
+//     quad( 2, 3, 7, 6 );
+//     quad( 3, 0, 4, 7 );
+//     quad( 6, 5, 1, 2 );
+//     quad( 4, 5, 6, 7 );
+//     quad( 5, 4, 0, 1 );
+// }
+
+
 window.onload = function init() {
     // setup canvas
 	canvas = document.getElementById("gl-canvas");
@@ -65,6 +123,8 @@ window.onload = function init() {
 
 	// camera revolution around hand
 	revolve();
+
+	//colorCube();
 
 	// load hand obj file using objLoader.js, and then call func to load bullet;
 	loadOBJFromPath("Hand.obj", loadedHand, readBullet);
@@ -169,7 +229,7 @@ function orderCoords(obj_object, flag){
 }
 
 var texture1;
-var texture2;
+//var texture2;
 
 function setupAfterDataLoad() {
 	gl.enable(gl.DEPTH_TEST);
@@ -180,7 +240,7 @@ function setupAfterDataLoad() {
 	
 	var image = document.getElementById("hand_tex");
 	texture1 = configureTexture(image);
-	texture2 = configureTexture(image);
+	//configureCubeMap();
 	
     render();	
 }
@@ -197,6 +257,26 @@ function configureTexture(image) {
 	return texture;
 }
 
+function configureCubeMap() {
+    cubeMap = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMap);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X ,0,gl.RGBA,
+       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X ,0,gl.RGBA,
+       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, blue);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y ,0,gl.RGBA,
+       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y ,0,gl.RGBA,
+       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, blue);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z ,0,gl.RGBA,
+       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z ,0,gl.RGBA,
+       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
+    
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+}
+
 // variables for shader passing and acquiring location
 var program_shader1, program_shader2;
 var vBuffer1, vBuffer2; 
@@ -204,7 +284,7 @@ var vPosition1, vPosition2;
 var iBuffer1, iBuffer2;
 var projectionMatrixLoc1, modelViewMatrixLoc1;
 var projectionMatrixLoc2, modelViewMatrixLoc2;
-var normalMatrix, normalMatrixLoc;
+var normalMatrix, normalMatrixLoc, normalMatrixLoc2;
 
 function setupFirstShaderBuffers(){
 	// load vertex and fragment shaders
@@ -273,9 +353,37 @@ function setupSecondShaderBuffers(){
     gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer2);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(bullet_vertices), gl.STATIC_DRAW);
 	 
+	// pass vertex normals to GPU
+	var nBuffer2 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer2);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(bullet_normals), gl.STATIC_DRAW);
+
+	// pass vertex normals to shader 
+	// var vNormal = gl.getAttribLocation(program_shader2, "vNormal");
+    // gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(vNormal);
+
+	//TODO:
+	// var nBufferC = gl.createBuffer();
+    // gl.bindBuffer( gl.ARRAY_BUFFER, nBufferC);
+    // gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
+    
+    // var vNormalC = gl.getAttribLocation( program_shader2, "vNormalC");
+    // gl.vertexAttribPointer( vNormalC, 4, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray( vNormalC);
+
+    // var vBufferC = gl.createBuffer();
+    // gl.bindBuffer(gl.ARRAY_BUFFER, vBufferC);
+    // gl.bufferData(gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW);
+    
+    // var vPositionC = gl.getAttribLocation( program_shader2, "vPositionC");
+    // gl.vertexAttribPointer(vPositionC, 4, gl.FLOAT, false, 0, 0);
+    // gl.enableVertexAttribArray(vPositionC);
+	
 	// location of modelView and projection matrices in shader 
 	modelViewMatrixLoc2 = gl.getUniformLocation(program_shader2, "modelViewMatrix");
     projectionMatrixLoc2 = gl.getUniformLocation(program_shader2, "projectionMatrix");
+	normalMatrixLoc2 = gl.getUniformLocation(program_shader2, "normalMatrix");
 
     // location of vPosition in shader
 	vPosition2 = gl.getAttribLocation(program_shader2, "vPosition");
@@ -385,10 +493,16 @@ function renderSecondObject() {
 	
 	gl.uniformMatrix4fv(modelViewMatrixLoc2, false, flatten(modelViewMatrix2));
     gl.uniformMatrix4fv(projectionMatrixLoc2, false, flatten(projectionMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc2, false, flatten(normalMatrix));
 
-	gl.activeTexture(gl.TEXTURE0);
-	gl.bindTexture(gl.TEXTURE_2D, texture2);
-	gl.uniform1i(gl.getUniformLocation(program_shader2, "texture"), 0);
+	// gl.activeTexture(gl.TEXTURE0);
+	// gl.bindTexture(gl.TEXTURE_2D, texture2);
+	// gl.uniform1i(gl.getUniformLocation(program_shader2, "texture"), 0);
+
+	configureCubeMap();
+    gl.activeTexture( gl.TEXTURE0 );
+	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
+    gl.uniform1i(gl.getUniformLocation(program_shader2, "texMap"),0); 
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
