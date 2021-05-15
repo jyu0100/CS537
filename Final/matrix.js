@@ -652,7 +652,7 @@ function revolve() {
 
 // variables for setting up camera view
 var modelViewMatrix, projectionMatrix;
-var modelViewMatrix2;
+var modelViewMatrix2, modelViewMatrix3, modelViewMatrix4;
 var idx = 0;
 var stop_popup = false;
 
@@ -680,8 +680,18 @@ function render() {
 	var at2 = vec3(0.0, 0.0, 0.0);
 	var up2 = vec3(0.0, 0.0, 0.0);
 
+	// var eye3 = vec3(0.0, 0.0, 0.0);
+	// var at3 = vec3(0.0, 0.0, 0.0);
+	// var up3 = vec3(0.0, 0.0, 0.0);
+
+	// var eye4 = vec3(0.0, 0.0, 0.0);
+	// var at4 = vec3(0.0, 0.0, 0.0);
+	// var up4 = vec3(0.0, 0.0, 0.0);
+
 	modelViewMatrix = lookAt(eye1, at1, up1);
 	modelViewMatrix2 = lookAt(eye2, at2, up2);
+	// modelViewMatrix3 = lookAt(eye3, at3, up3);
+	// modelViewMatrix4 = lookAt(eye4, at4, up4);
 
 	var scale = 6;
 	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
@@ -701,7 +711,7 @@ function render() {
 	
 	renderSecondObject();
 
-	//renderThirdObject();
+	// renderThirdObject();
 	//renderFourthObject();
 
 	// positive bullet direction
