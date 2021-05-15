@@ -32,17 +32,17 @@ var ambientProduct = mult(lightAmbient, materialAmbient);
 var diffuseProduct = mult(lightDiffuse, materialDiffuse);
 var specularProduct = mult(lightSpecular, materialSpecular);
 
-// fading bullets
-var size_Loc;
+// show/hide bullets
 var size;
+var size_Loc, size_Loc2, size_Loc3;
 
 // moving bullets
 var move;
-var move_Loc;
+var move_Loc, move_Loc2, move_Loc3;
 var tx = -1.0;
-var tx_Loc;
+var tx_Loc, tx_Loc2, tx_Loc3;
 var r = 1.0;
-var r_Loc;
+var r_Loc, r_Loc2, r_Loc3;
 
 // stop camera + slider
 var stop_cam = false;
@@ -55,81 +55,27 @@ var ty_h;
 var txh_Loc;
 var tyh_Loc;
 
-// TODO: reflective mapping
+// reflective mapping
 var cubeMap;
-var white = new Uint8Array([255, 255, 255, 255]);
 var silver = new Uint8Array([187, 194, 204, 255]);
-var red = new Uint8Array([255, 0, 0, 255]);
-var green = new Uint8Array([0, 255, 0, 255]);
 var blue = new Uint8Array([31, 81, 255, 255]);
-var cyan = new Uint8Array([0, 255, 255, 255]);
-var magenta = new Uint8Array([255, 0, 255, 255]);
-var yellow = new Uint8Array([255, 255, 0, 255]);
-// var pointsArray = [];
-// var normalsArray = [];
-// var vertices = [
-//     vec4( -0.5, -0.5,  0.5, 1.0 ),
-//     vec4( -0.5,  0.5,  0.5, 1.0 ),
-//     vec4( 0.5,  0.5,  0.5, 1.0 ),
-//     vec4( 0.5, -0.5,  0.5, 1.0 ),
-//     vec4( -0.5, -0.5, -0.5, 1.0 ),
-//     vec4( -0.5,  0.5, -0.5, 1.0 ),
-//     vec4( 0.5,  0.5, -0.5, 1.0 ),
-//     vec4( 0.5, -0.5, -0.5, 1.0 )
-// ];
-// function quad(a, b, c, d) {
-
-// 	var t1 = subtract(vertices[b], vertices[a]);
-// 	var t2 = subtract(vertices[c], vertices[a]);
-// 	var normal = cross(t1, t2);
-// 	normal[3] = 0.0;
-
-// 	pointsArray.push(vertices[a]); 
-// 	normalsArray.push(normal); 
-
-// 	pointsArray.push(vertices[b]); 
-// 	normalsArray.push(normal);  
-
-// 	pointsArray.push(vertices[c]); 
-// 	normalsArray.push(normal);;  
-   
-// 	pointsArray.push(vertices[a]); 
-// 	normalsArray.push(normal);;  
-
-// 	pointsArray.push(vertices[c]); 
-// 	normalsArray.push(normal);;  
-
-// 	pointsArray.push(vertices[d]); 
-// 	normalsArray.push(normal);;     
-// }
-// function colorCube()
-// {
-//     quad( 1, 0, 3, 2 );
-//     quad( 2, 3, 7, 6 );
-//     quad( 3, 0, 4, 7 );
-//     quad( 6, 5, 1, 2 );
-//     quad( 4, 5, 6, 7 );
-//     quad( 5, 4, 0, 1 );
-// }
-
 
 window.onload = function init() {
     // setup canvas
 	canvas = document.getElementById("gl-canvas");
     gl = WebGLUtils.setupWebGL(canvas);
     if (!gl) { alert("WebGL isn't available"); }
-    gl.viewport( 0, 0, canvas.width, canvas.height );
-	gl.clearColor( 0.0, 1.0, 1.0, 0.2 ); // CHANGE LATER?
+    gl.viewport(0, 0, canvas.width, canvas.height);
+	gl.clearColor(1.0, 1.0, 1.0, 1.0);
 
 	// camera revolution around hand
 	revolve();
-
-	//colorCube();
 
 	// load hand obj file using objLoader.js, and then call func to load bullet;
 	loadOBJFromPath("Hand.obj", loadedHand, readBullet);
 }
 
+// respond to window resizing events
 window.onresize = function() {
 	var min = innerWidth;
 
@@ -142,8 +88,15 @@ window.onresize = function() {
 }
 
 function readBullet() {
-	// load bullet obj using objLoader.js, and then call func to setup data
-	loadOBJFromPath("Bullet.obj", loadedBullet, setupAfterDataLoad);
+	loadOBJFromPath("Bullet.obj", loadedBullet, readBullet2);
+}
+
+function readBullet2() {
+	loadOBJFromPath("Bullet.obj", loadedBullet, readBullet3);
+}
+
+function readBullet3() {
+	loadOBJFromPath("Bullet.obj", loadedBullet, setupAfterDataLoad)
 }
 
 function loadedHand(data, _callback) {
@@ -171,7 +124,7 @@ function loadedBullet(data, _callback) {
 }
 
 // order coordinates of texture/normal to match ordering of vertices
-function orderCoords(obj_object, flag){
+function orderCoords(obj_object, flag) {
 	if (flag == "texture") {
 		var texCoordsOrderedWithVertices = [];
 
@@ -229,20 +182,17 @@ function orderCoords(obj_object, flag){
 }
 
 var texture1;
-//var texture2;
 
 function setupAfterDataLoad() {
 	gl.enable(gl.DEPTH_TEST);
 	
     setupFirstShaderBuffers();
-	
 	setupSecondShaderBuffers();
 	setupThirdShaderBuffers();
 	setupFourthShaderBuffers();
 	
 	var image = document.getElementById("hand_tex");
 	texture1 = configureTexture(image);
-	//configureCubeMap();
 	
     render();	
 }
@@ -262,21 +212,21 @@ function configureTexture(image) {
 function configureCubeMap() {
     cubeMap = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMap);
-    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X ,0,gl.RGBA,
-       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
-    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X ,0,gl.RGBA,
-       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, blue);
-    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y ,0,gl.RGBA,
-       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
-    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y ,0,gl.RGBA,
-       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, blue);
-    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z ,0,gl.RGBA,
-       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
-    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z ,0,gl.RGBA,
-       1,1,0,gl.RGBA,gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_X, 0, gl.RGBA,
+		1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_X, 0, gl.RGBA, 
+		1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Y, 0, gl.RGBA, 
+		1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, gl.RGBA, 
+		1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, blue);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_POSITIVE_Z, 0, gl.RGBA, 
+		1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, silver);
+    gl.texImage2D(gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, gl.RGBA, 
+		1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, silver);
     
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_CUBE_MAP,gl.TEXTURE_MIN_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 }
 
 // variables for shader passing and acquiring location
@@ -284,13 +234,11 @@ var program_shader1, program_shader2, program_shader3, program_shader4;
 var vBuffer1, vBuffer2, vBuffer3, vBuffer4; 
 var vPosition1, vPosition2, vPosition3, vPosition4;
 var iBuffer1, iBuffer2, iBuffer3, iBuffer4;
-var projectionMatrixLoc1, modelViewMatrixLoc1;
-var projectionMatrixLoc2, modelViewMatrixLoc2;
-var projectionMatrixLoc3, modelViewMatrixLoc3;
-var projectionMatrixLoc4, modelViewMatrixLoc4;
+var projectionMatrixLoc1, projectionMatrixLoc2, projectionMatrixLoc3, projectionMatrixLoc4
+var modelViewMatrixLoc1, modelViewMatrixLoc2, modelViewMatrixLoc3, modelViewMatrixLoc4;
 var normalMatrix, normalMatrixLoc, normalMatrixLoc2, normalMatrixLoc3, normalMatrixLoc4;
 
-function setupFirstShaderBuffers(){
+function setupFirstShaderBuffers() {
 	// load vertex and fragment shaders
     program_shader1 = initShaders(gl, "vertex-shader1", "fragment-shader1");
     gl.useProgram(program_shader1);
@@ -342,7 +290,7 @@ function setupFirstShaderBuffers(){
     tyh_Loc = gl.getUniformLocation(program_shader1, "ty");
 }
 
-function setupSecondShaderBuffers(){
+function setupSecondShaderBuffers() {
 	// load vertex and fragment shaders
     program_shader2 = initShaders(gl, "vertex-shader2", "fragment-shader2");
     gl.useProgram(program_shader2);
@@ -361,28 +309,6 @@ function setupSecondShaderBuffers(){
 	var nBuffer2 = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer2);
     gl.bufferData(gl.ARRAY_BUFFER, flatten(bullet_normals), gl.STATIC_DRAW);
-
-	// pass vertex normals to shader 
-	// var vNormal = gl.getAttribLocation(program_shader2, "vNormal");
-    // gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
-    // gl.enableVertexAttribArray(vNormal);
-
-	//TODO:
-	// var nBufferC = gl.createBuffer();
-    // gl.bindBuffer( gl.ARRAY_BUFFER, nBufferC);
-    // gl.bufferData( gl.ARRAY_BUFFER, flatten(normalsArray), gl.STATIC_DRAW );
-    
-    // var vNormalC = gl.getAttribLocation( program_shader2, "vNormalC");
-    // gl.vertexAttribPointer( vNormalC, 4, gl.FLOAT, false, 0, 0);
-    // gl.enableVertexAttribArray( vNormalC);
-
-    // var vBufferC = gl.createBuffer();
-    // gl.bindBuffer(gl.ARRAY_BUFFER, vBufferC);
-    // gl.bufferData(gl.ARRAY_BUFFER, flatten(pointsArray), gl.STATIC_DRAW);
-    
-    // var vPositionC = gl.getAttribLocation( program_shader2, "vPositionC");
-    // gl.vertexAttribPointer(vPositionC, 4, gl.FLOAT, false, 0, 0);
-    // gl.enableVertexAttribArray(vPositionC);
 	
 	// location of modelView and projection matrices in shader 
 	modelViewMatrixLoc2 = gl.getUniformLocation(program_shader2, "modelViewMatrix");
@@ -400,11 +326,9 @@ function setupSecondShaderBuffers(){
 	camera_checkbox.addEventListener('change', function() {
 		if (this.checked) {
 			stop_cam = true;
-			console.log("camera_checkbox checked")
 		} else {
 			stop_cam = false;
 			enable_slide = false;
-			console.log("camera_checkbox unchecked")
 		}
 	})
 
@@ -413,10 +337,8 @@ function setupSecondShaderBuffers(){
 	bullet_checkbox.addEventListener('change', function() {
 		if (this.checked) {
 			size = 0.0;
-			console.log("bullet_checkbox checked")
 		} else {
 			size = 1.0; //any value other than 0 should work
-			console.log("bullet_checkbox unchecked")
 		}
 	})
 
@@ -425,10 +347,8 @@ function setupSecondShaderBuffers(){
 	move_checkbox.addEventListener('change', function() {
 		if (this.checked) {
 			move = 1.0;
-			console.log("move_checkbox checked")
 		} else {
 			move = 0.0;
-			console.log("move_checkbox unchecked")
 		}
 	})
 
@@ -442,8 +362,6 @@ function setupSecondShaderBuffers(){
 				path_index = parseInt(event.target.value);
 			}
 		}
-		//console.log(path_index)
-		//console.log(enable_slide) 
 	};
 	
 	// get locations in shader
@@ -453,7 +371,7 @@ function setupSecondShaderBuffers(){
 	r_Loc = gl.getUniformLocation(program_shader2, "r");
 }
 
-function setupThirdShaderBuffers(){
+function setupThirdShaderBuffers() {
 	// load vertex and fragment shaders
     program_shader3 = initShaders(gl, "vertex-shader3", "fragment-shader3");
     gl.useProgram(program_shader3);
@@ -480,9 +398,61 @@ function setupThirdShaderBuffers(){
 
     // location of vPosition in shader
 	vPosition3 = gl.getAttribLocation(program_shader3, "vPosition");
+
+	// for fading bullets
+	// event listeners
+	// doesnt work when you put these outside a function
+	var camera_checkbox = document.getElementById("c1");
+
+	camera_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			stop_cam = true;
+		} else {
+			stop_cam = false;
+			enable_slide = false;
+		}
+	})
+
+	var bullet_checkbox = document.getElementById("c2");
+
+	bullet_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			size = 0.0;
+		} else {
+			size = 1.0; //any value other than 0 should work
+		}
+	})
+
+	// event listener for moving bullet
+	var move_checkbox = document.getElementById("c3");
+	move_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			move = 1.0;
+		} else {
+			move = 0.0;
+		}
+	})
+
+	document.getElementById("slide").onchange= function() {
+		if (stop_cam) {
+			if (event.target.value == 0 || event.target.value == 360) {
+				enable_slide = true;
+				path_index = 0;
+			} else {
+				enable_slide = true;
+				path_index = parseInt(event.target.value);
+			}
+		}
+	};
+	
+	// get locations in shader
+	size_Loc2 = gl.getUniformLocation(program_shader3, "b");
+	move_Loc2 = gl.getUniformLocation(program_shader3, "move");
+	tx_Loc2 = gl.getUniformLocation(program_shader3, "tx");
+	r_Loc2 = gl.getUniformLocation(program_shader3, "r");
 }
 
-function setupFourthShaderBuffers(){
+function setupFourthShaderBuffers() {
 	// load vertex and fragment shaders
     program_shader4 = initShaders(gl, "vertex-shader4", "fragment-shader4");
     gl.useProgram(program_shader4);
@@ -508,7 +478,59 @@ function setupFourthShaderBuffers(){
 	normalMatrixLoc4 = gl.getUniformLocation(program_shader4, "normalMatrix");
 
     // location of vPosition in shader
-	vPosition3 = gl.getAttribLocation(program_shader4, "vPosition");
+	vPosition4 = gl.getAttribLocation(program_shader4, "vPosition");
+
+	// for fading bullets
+	// event listeners
+	// doesnt work when you put these outside a function
+	var camera_checkbox = document.getElementById("c1");
+
+	camera_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			stop_cam = true;
+		} else {
+			stop_cam = false;
+			enable_slide = false;
+		}
+	})
+
+	var bullet_checkbox = document.getElementById("c2");
+
+	bullet_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			size = 0.0;
+		} else {
+			size = 1.0; //any value other than 0 should work
+		}
+	})
+
+	// event listener for moving bullet
+	var move_checkbox = document.getElementById("c3");
+	move_checkbox.addEventListener('change', function() {
+		if (this.checked) {
+			move = 1.0;
+		} else {
+			move = 0.0;
+		}
+	})
+
+	document.getElementById("slide").onchange= function() {
+		if (stop_cam) {
+			if (event.target.value == 0 || event.target.value == 360) {
+				enable_slide = true;
+				path_index = 0;
+			} else {
+				enable_slide = true;
+				path_index = parseInt(event.target.value);
+			}
+		}
+	};
+	
+	// get locations in shader
+	size_Loc3 = gl.getUniformLocation(program_shader4, "b");
+	move_Loc3 = gl.getUniformLocation(program_shader4, "move");
+	tx_Loc3 = gl.getUniformLocation(program_shader4, "tx");
+	r_Loc3 = gl.getUniformLocation(program_shader4, "r");
 }
 
 function renderFirstObject() {
@@ -557,14 +579,14 @@ function renderSecondObject() {
     gl.uniformMatrix4fv(projectionMatrixLoc2, false, flatten(projectionMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc2, false, flatten(normalMatrix));
 
-	// gl.activeTexture(gl.TEXTURE0);
-	// gl.bindTexture(gl.TEXTURE_2D, texture2);
-	// gl.uniform1i(gl.getUniformLocation(program_shader2, "texture"), 0);
-
 	configureCubeMap();
     gl.activeTexture( gl.TEXTURE0 );
-	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
-    gl.uniform1i(gl.getUniformLocation(program_shader2, "texMap"),0); 
+    gl.uniform1i(gl.getUniformLocation(program_shader2, "texMap"), 0);
+
+	gl.uniform1f(size_Loc, size);
+	gl.uniform1f(move_Loc, move);
+	gl.uniform1f(tx_Loc, tx);
+	gl.uniform1f(r_Loc, r);
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
@@ -578,15 +600,18 @@ function renderThirdObject() {
     gl.vertexAttribPointer(vPosition3, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition3);
 	
-	gl.uniformMatrix4fv(modelViewMatrixLoc3, false, flatten(modelViewMatrix3));
+	gl.uniformMatrix4fv(modelViewMatrixLoc3, false, flatten(modelViewMatrix2));
     gl.uniformMatrix4fv(projectionMatrixLoc3, false, flatten(projectionMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc3, false, flatten(normalMatrix));
 
-
 	configureCubeMap();
     gl.activeTexture( gl.TEXTURE0 );
-	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
-    gl.uniform1i(gl.getUniformLocation(program_shader3, "texMap"),0); 
+    gl.uniform1i(gl.getUniformLocation(program_shader3, "texMap"), 0); 
+
+	gl.uniform1f(size_Loc2, size);
+	gl.uniform1f(move_Loc2, move);
+	gl.uniform1f(tx_Loc2, tx);
+	gl.uniform1f(r_Loc2, r);
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
@@ -600,15 +625,18 @@ function renderFourthObject() {
     gl.vertexAttribPointer(vPosition4, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vPosition4);
 	
-	gl.uniformMatrix4fv(modelViewMatrixLoc4, false, flatten(modelViewMatrix4));
+	gl.uniformMatrix4fv(modelViewMatrixLoc4, false, flatten(modelViewMatrix2));
     gl.uniformMatrix4fv(projectionMatrixLoc4, false, flatten(projectionMatrix));
 	gl.uniformMatrix3fv(normalMatrixLoc4, false, flatten(normalMatrix));
 
-
 	configureCubeMap();
     gl.activeTexture( gl.TEXTURE0 );
-	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
-    gl.uniform1i(gl.getUniformLocation(program_shader4, "texMap"),0); 
+    gl.uniform1i(gl.getUniformLocation(program_shader4, "texMap"), 0); 
+
+	gl.uniform1f(size_Loc3, size);
+	gl.uniform1f(move_Loc3, move);
+	gl.uniform1f(tx_Loc3, tx);
+	gl.uniform1f(r_Loc3, r);
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
@@ -652,7 +680,7 @@ function revolve() {
 
 // variables for setting up camera view
 var modelViewMatrix, projectionMatrix;
-var modelViewMatrix2, modelViewMatrix3, modelViewMatrix4;
+var modelViewMatrix2;
 var idx = 0;
 var stop_popup = false;
 
@@ -680,18 +708,8 @@ function render() {
 	var at2 = vec3(0.0, 0.0, 0.0);
 	var up2 = vec3(0.0, 0.0, 0.0);
 
-	// var eye3 = vec3(0.0, 0.0, 0.0);
-	// var at3 = vec3(0.0, 0.0, 0.0);
-	// var up3 = vec3(0.0, 0.0, 0.0);
-
-	// var eye4 = vec3(0.0, 0.0, 0.0);
-	// var at4 = vec3(0.0, 0.0, 0.0);
-	// var up4 = vec3(0.0, 0.0, 0.0);
-
 	modelViewMatrix = lookAt(eye1, at1, up1);
 	modelViewMatrix2 = lookAt(eye2, at2, up2);
-	// modelViewMatrix3 = lookAt(eye3, at3, up3);
-	// modelViewMatrix4 = lookAt(eye4, at4, up4);
 
 	var scale = 6;
 	projectionMatrix = ortho(-1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale, -1.0*scale, 1.0*scale);
@@ -708,11 +726,9 @@ function render() {
 	}
 	
 	renderFirstObject();
-	
 	renderSecondObject();
-
-	// renderThirdObject();
-	//renderFourthObject();
+	renderThirdObject();
+	renderFourthObject();
 
 	// positive bullet direction
 	if (move == 1.0) {
@@ -736,12 +752,6 @@ function render() {
 			move = 1.0;
 		}
 	}
-
-	// send values to shader
-	gl.uniform1f(size_Loc, size);
-	gl.uniform1f(move_Loc, move);
-	gl.uniform1f(tx_Loc, tx);
-	gl.uniform1f(r_Loc, r);
 
 	if (tx >= tx_h & !stop_popup) {
 		alert("You got hit")
