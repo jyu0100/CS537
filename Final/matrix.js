@@ -237,6 +237,8 @@ function setupAfterDataLoad() {
     setupFirstShaderBuffers();
 	
 	setupSecondShaderBuffers();
+	setupThirdShaderBuffers();
+	setupFourthShaderBuffers();
 	
 	var image = document.getElementById("hand_tex");
 	texture1 = configureTexture(image);
@@ -278,13 +280,15 @@ function configureCubeMap() {
 }
 
 // variables for shader passing and acquiring location
-var program_shader1, program_shader2;
-var vBuffer1, vBuffer2; 
-var vPosition1, vPosition2;
-var iBuffer1, iBuffer2;
+var program_shader1, program_shader2, program_shader3, program_shader4;
+var vBuffer1, vBuffer2, vBuffer3, vBuffer4; 
+var vPosition1, vPosition2, vPosition3, vPosition4;
+var iBuffer1, iBuffer2, iBuffer3, iBuffer4;
 var projectionMatrixLoc1, modelViewMatrixLoc1;
 var projectionMatrixLoc2, modelViewMatrixLoc2;
-var normalMatrix, normalMatrixLoc, normalMatrixLoc2;
+var projectionMatrixLoc3, modelViewMatrixLoc3;
+var projectionMatrixLoc4, modelViewMatrixLoc4;
+var normalMatrix, normalMatrixLoc, normalMatrixLoc2, normalMatrixLoc3, normalMatrixLoc4;
 
 function setupFirstShaderBuffers(){
 	// load vertex and fragment shaders
@@ -449,6 +453,64 @@ function setupSecondShaderBuffers(){
 	r_Loc = gl.getUniformLocation(program_shader2, "r");
 }
 
+function setupThirdShaderBuffers(){
+	// load vertex and fragment shaders
+    program_shader3 = initShaders(gl, "vertex-shader3", "fragment-shader3");
+    gl.useProgram(program_shader3);
+
+    // array element buffer
+    iBuffer3 = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer3);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(bullet_indices), gl.STATIC_DRAW);
+	
+    // vertex array attribute buffer
+    vBuffer3 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer3);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(bullet_vertices), gl.STATIC_DRAW);
+	 
+	// pass vertex normals to GPU
+	var nBuffer3 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer3);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(bullet_normals), gl.STATIC_DRAW);
+	
+	// location of modelView and projection matrices in shader 
+	modelViewMatrixLoc3 = gl.getUniformLocation(program_shader3, "modelViewMatrix");
+    projectionMatrixLoc3 = gl.getUniformLocation(program_shader3, "projectionMatrix");
+	normalMatrixLoc3 = gl.getUniformLocation(program_shader3, "normalMatrix");
+
+    // location of vPosition in shader
+	vPosition3 = gl.getAttribLocation(program_shader3, "vPosition");
+}
+
+function setupFourthShaderBuffers(){
+	// load vertex and fragment shaders
+    program_shader4 = initShaders(gl, "vertex-shader4", "fragment-shader4");
+    gl.useProgram(program_shader4);
+
+    // array element buffer
+    iBuffer4 = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer4);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(bullet_indices), gl.STATIC_DRAW);
+	
+    // vertex array attribute buffer
+    vBuffer4 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer4);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(bullet_vertices), gl.STATIC_DRAW);
+	 
+	// pass vertex normals to GPU
+	var nBuffer4 = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer4);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(bullet_normals), gl.STATIC_DRAW);
+	
+	// location of modelView and projection matrices in shader 
+	modelViewMatrixLoc4 = gl.getUniformLocation(program_shader4, "modelViewMatrix");
+    projectionMatrixLoc4 = gl.getUniformLocation(program_shader4, "projectionMatrix");
+	normalMatrixLoc4 = gl.getUniformLocation(program_shader4, "normalMatrix");
+
+    // location of vPosition in shader
+	vPosition3 = gl.getAttribLocation(program_shader4, "vPosition");
+}
+
 function renderFirstObject() {
 	gl.useProgram(program_shader1);
 	
@@ -503,6 +565,50 @@ function renderSecondObject() {
     gl.activeTexture( gl.TEXTURE0 );
 	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
     gl.uniform1i(gl.getUniformLocation(program_shader2, "texMap"),0); 
+
+    gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
+}
+
+function renderThirdObject() {
+	gl.useProgram(program_shader3);
+	
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer3);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer3);
+    gl.vertexAttribPointer(vPosition3, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition3);
+	
+	gl.uniformMatrix4fv(modelViewMatrixLoc3, false, flatten(modelViewMatrix3));
+    gl.uniformMatrix4fv(projectionMatrixLoc3, false, flatten(projectionMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc3, false, flatten(normalMatrix));
+
+
+	configureCubeMap();
+    gl.activeTexture( gl.TEXTURE0 );
+	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
+    gl.uniform1i(gl.getUniformLocation(program_shader3, "texMap"),0); 
+
+    gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
+}
+
+function renderFourthObject() {
+	gl.useProgram(program_shader4);
+	
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, iBuffer4);
+	
+	gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer4);
+    gl.vertexAttribPointer(vPosition4, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition4);
+	
+	gl.uniformMatrix4fv(modelViewMatrixLoc4, false, flatten(modelViewMatrix4));
+    gl.uniformMatrix4fv(projectionMatrixLoc4, false, flatten(projectionMatrix));
+	gl.uniformMatrix3fv(normalMatrixLoc4, false, flatten(normalMatrix));
+
+
+	configureCubeMap();
+    gl.activeTexture( gl.TEXTURE0 );
+	//gl.bindTexture(gl.TEXTURE_2D, cubeMap);
+    gl.uniform1i(gl.getUniformLocation(program_shader4, "texMap"),0); 
 
     gl.drawElements(gl.TRIANGLES, numVerticesInAllBulletFaces, gl.UNSIGNED_SHORT, 0);
 }
@@ -594,6 +700,9 @@ function render() {
 	renderFirstObject();
 	
 	renderSecondObject();
+
+	//renderThirdObject();
+	//renderFourthObject();
 
 	// positive bullet direction
 	if (move == 1.0) {

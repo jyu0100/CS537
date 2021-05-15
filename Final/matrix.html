@@ -171,6 +171,178 @@ void main() {
 }
 </script>
 
+<script id="vertex-shader3" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec4 vPositionC;
+attribute vec3 vNormal;
+attribute vec3 vNormalC;
+
+varying vec4 fColor;
+
+attribute vec2 vTexCoord;
+varying vec2 fTexCoord;
+varying vec3 R;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix; 
+
+uniform mat3 normalMatrix;
+
+uniform float b;
+uniform float move;
+uniform float tx;
+uniform float r;
+
+void main() {
+    // translation matrix
+    mat4 t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  -0.2, 0.6, 0.0, 1.0);
+    // scaling matrix
+    mat4 sc = mat4(0.3, 0.0, 0.0, 0.0,
+                   0.0, 0.3, 0.0, 0.0,
+                   0.0, 0.0, 0.3, 0.0,
+                   0.0, 0.0, 0.0, 1.0);
+    // rotation matrix
+    mat4 rz = mat4(0.0, -1.0, 0.0, 0.0,
+		           1.0, 0.0, 0.0, 0.0,
+		           0.0, 0.0, 1.0, 0.0,
+		           0.0, 0.0, 0.0, 1.0);
+    
+    if (b == 0.0) {
+        sc = mat4(0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 1.0);
+    }
+    
+    if (move == 1.0 || move == -1.0) {
+        t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  tx, 0.6, 0.0, 1.0);
+        rz = mat4(0.0, -1.0, 0.0, 0.0,
+                  r, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  0.0, 0.0, 0.0, 1.0);
+    }
+
+    gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
+    fColor = vec4(0.0, 1.0, 0.0, 1.0);
+    fTexCoord = vTexCoord;
+
+
+    vec3 eyePos  = (modelViewMatrix*vPositionC).xyz;
+
+    vec3 N = normalize(normalMatrix*vNormalC.xyz);
+    
+    R = reflect(eyePos, N);
+}
+</script>
+    
+<script id="fragment-shader3" type="x-shader/x-fragment">    
+precision mediump float;
+
+//varying vec4 fColor;
+//varying vec2 fTexCoord;
+//uniform sampler2D texture;
+
+varying vec3 R;
+uniform samplerCube texMap;
+
+void main() {
+    vec4 texColor = textureCube(texMap, R);
+    gl_FragColor = texColor;
+}
+</script>
+
+<script id="vertex-shader4" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec4 vPositionC;
+attribute vec3 vNormal;
+attribute vec3 vNormalC;
+
+varying vec4 fColor;
+
+attribute vec2 vTexCoord;
+varying vec2 fTexCoord;
+varying vec3 R;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix; 
+
+uniform mat3 normalMatrix;
+
+uniform float b;
+uniform float move;
+uniform float tx;
+uniform float r;
+
+void main() {
+    // translation matrix
+    mat4 t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  -0.2, -0.6, 0.0, 1.0);
+    // scaling matrix
+    mat4 sc = mat4(0.3, 0.0, 0.0, 0.0,
+                   0.0, 0.3, 0.0, 0.0,
+                   0.0, 0.0, 0.3, 0.0,
+                   0.0, 0.0, 0.0, 1.0);
+    // rotation matrix
+    mat4 rz = mat4(0.0, -1.0, 0.0, 0.0,
+		           1.0, 0.0, 0.0, 0.0,
+		           0.0, 0.0, 1.0, 0.0,
+		           0.0, 0.0, 0.0, 1.0);
+    
+    if (b == 0.0) {
+        sc = mat4(0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 1.0);
+    }
+    
+    if (move == 1.0 || move == -1.0) {
+        t = mat4(1.0, 0.0, 0.0, 0.0,
+                  0.0, 1.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  tx, -0.6, 0.0, 1.0);
+        rz = mat4(0.0, -1.0, 0.0, 0.0,
+                  r, 0.0, 0.0, 0.0,
+                  0.0, 0.0, 1.0, 0.0,
+                  0.0, 0.0, 0.0, 1.0);
+    }
+
+    gl_Position = (t * rz * sc) * (projectionMatrix * modelViewMatrix) * vPosition;
+    fColor = vec4(0.0, 1.0, 0.0, 1.0);
+    fTexCoord = vTexCoord;
+
+
+    vec3 eyePos  = (modelViewMatrix*vPositionC).xyz;
+
+    vec3 N = normalize(normalMatrix*vNormalC.xyz);
+    
+    R = reflect(eyePos, N);
+}
+</script>
+    
+<script id="fragment-shader4" type="x-shader/x-fragment">    
+precision mediump float;
+
+//varying vec4 fColor;
+//varying vec2 fTexCoord;
+//uniform sampler2D texture;
+
+varying vec3 R;
+uniform samplerCube texMap;
+
+void main() {
+    vec4 texColor = textureCube(texMap, R);
+    gl_FragColor = texColor;
+}
+</script>
+
 <script type="text/javascript" src="../Common/webgl-utils.js"></script>
 <script type="text/javascript" src="../Common/initShaders.js"></script>
 <script type="text/javascript" src="../Common/MV.js"></script>
